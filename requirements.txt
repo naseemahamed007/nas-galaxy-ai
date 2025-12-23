@@ -1,7 +1,3 @@
 streamlit
-transformers
-sentencepiece
-torch
-torchvision
-PyPDF2
-Pillow
+pandas
+
