@@ -1,159 +1,114 @@
 import streamlit as st
-from transformers import pipeline
-import PyPDF2
-from PIL import Image
-import base64
-import io
+import pandas as pd
+import datetime
+import time
 
-# ---------------------------------------------------------
-# ✨ Premium Billion-Dollar UI Theme
-# ---------------------------------------------------------
+# ================= PAGE CONFIG =================
+st.set_page_config(page_title="Life Revolution App", page_icon="🚀", layout="wide")
 
-st.set_page_config(
-    page_title="Nas Galaxy AI",
-    page_icon="✨",
-    layout="wide"
-)
+# ================= THEME ENGINE =================
+if "theme" not in st.session_state:
+    st.session_state.theme = "light"
 
-st.markdown("""
+def toggle_theme():
+    st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
+
+LIGHT = """
 <style>
-body {
-    background: linear-gradient(135deg, #0a0f24, #000000);
-    color: white;
-}
-.sidebar .sidebar-content {
-    background: rgba(255,255,255,0.05) !important;
-}
-.block-container {
-    padding-top: 2rem;
-}
-.big-title {
-    font-size: 3rem;
-    font-weight: 800;
-    background: linear-gradient(90deg, #00d2ff, #3a47d5);
-    -webkit-background-clip: text;
-    color: transparent;
-}
-.glass {
-    background: rgba(255,255,255,0.07);
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.2);
-    backdrop-filter: blur(12px);
-}
+body {background: #f5f7fa !important;}
+header {visibility: hidden;}
+.block {background: rgba(255,255,255,0.85); border-radius: 20px; padding:20px; margin-bottom:20px;}
+.bigtitle {font-size:40px; font-weight:bold; color:#000;}
+.subtitle {font-size:18px; color:#333;}
 </style>
-""", unsafe_allow_html=True)
+"""
 
-# ---------------------------------------------------------
-# ✨ Load AI Models
-# ---------------------------------------------------------
+DARK = """
+<style>
+body {background: #121212 !important;}
+header {visibility: hidden;}
+.block {background: rgba(30,30,30,0.85); border-radius: 20px; padding:20px; margin-bottom:20px;}
+.bigtitle {font-size:40px; font-weight:bold; color:#fff;}
+.subtitle {font-size:18px; color:#ccc;}
+</style>
+"""
 
-@st.cache_resource(show_spinner=True)
-def load_models():
-    chat = pipeline("text-generation", model="mistralai/Mistral-7B-Instruct-v0.3")
-    emo = pipeline("sentiment-analysis")
-    summ = pipeline("summarization")
-    code = pipeline("text-generation", model="deepseek-ai/deepseek-coder-1.3b")
-    return chat, emo, summ, code
+if st.session_state.theme == "light":
+    st.markdown(LIGHT, unsafe_allow_html=True)
+else:
+    st.markdown(DARK, unsafe_allow_html=True)
 
-st.sidebar.title("⚙️ Nas Galaxy Settings")
-if st.sidebar.button("Load AI Models"):
-    chat_model, emotion_model, summary_model, code_model = load_models()
-    st.sidebar.success("Models loaded successfully!")
+# ================= SIDEBAR =================
+with st.sidebar:
+    st.title("🚀 Life Revolution App")
+    menu = st.radio("Navigate", [
+        "🏠 Dashboard",
+        "🎭 Mood Tracker",
+        "📊 Mood Charts",
+        "📝 Diary",
+        "🤖 AI Chat (Coming Soon)",
+        "🎤 Voice Assistant (Coming Soon)",
+        "⚙️ Settings",
+        "🧩 Other Features (Coming Soon)"
+    ])
 
-# ---------------------------------------------------------
-# ✨ Sidebar Mode Selection
-# ---------------------------------------------------------
+# ================= DASHBOARD =================
+if menu == "🏠 Dashboard":
+    st.markdown("<div class='bigtitle'>Welcome to Life Revolution App</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>All your life tracking & AI features in one place.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='block'>Explore the app using the sidebar!</div>", unsafe_allow_html=True)
 
-mode = st.sidebar.radio(
-    "Select Mode",
-    ["Chat", "Emotion AI", "Summarizer", "PDF Reader", "Code Assistant"]
-)
+# ================= MOOD TRACKER =================
+elif menu == "🎭 Mood Tracker":
+    st.markdown("<div class='bigtitle'>Mood Tracker</div>", unsafe_allow_html=True)
+    st.markdown("<div class='block'>Rate your mood today (1 = worst, 10 = best):</div>", unsafe_allow_html=True)
+    mood = st.slider("Your Mood:", 1, 10, 5)
+    if st.button("Save Mood"):
+        if "mood_data" not in st.session_state:
+            st.session_state.mood_data = []
+        st.session_state.mood_data.append({"date": datetime.date.today(), "mood": mood})
+        st.success(f"Mood {mood} saved for today!")
 
-st.markdown("<h1 class='big-title'>Nas Galaxy AI 🌌</h1>", unsafe_allow_html=True)
-st.write("Your futuristic multi-AI Copilot — built with style and power.")
+# ================= MOOD CHARTS =================
+elif menu == "📊 Mood Charts":
+    st.markdown("<div class='bigtitle'>Mood Charts</div>", unsafe_allow_html=True)
+    if "mood_data" in st.session_state and st.session_state.mood_data:
+        df = pd.DataFrame(st.session_state.mood_data)
+        df['date'] = pd.to_datetime(df['date'])
+        st.line_chart(df.set_index('date')['mood'])
+    else:
+        st.info("No mood data yet. Go to Mood Tracker to add.")
 
-# ---------------------------------------------------------
-# ✨ Chat Mode
-# ---------------------------------------------------------
+# ================= DIARY =================
+elif menu == "📝 Diary":
+    st.markdown("<div class='bigtitle'>Diary</div>", unsafe_allow_html=True)
+    entry = st.text_area("Write your diary entry:")
+    if st.button("Save Entry"):
+        if "diary_data" not in st.session_state:
+            st.session_state.diary_data = []
+        st.session_state.diary_data.append({"date": datetime.datetime.now(), "entry": entry})
+        st.success("Diary entry saved!")
+    if "diary_data" in st.session_state:
+        for d in reversed(st.session_state.diary_data[-5:]):
+            st.markdown(f"**{d['date'].strftime('%Y-%m-%d %H:%M')}**: {d['entry']}")
 
-if mode == "Chat":
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.subheader("💬 Chat with AI")
+# ================= AI CHATPLACEHOLDER =================
+elif menu == "🤖 AI Chat (Coming Soon)":
+    st.markdown("<div class='bigtitle'>AI Chat (Coming Soon)</div>", unsafe_allow_html=True)
+    st.info("AI features will be added soon!")
 
-    user = st.text_area("You:", placeholder="Type your message...")
+# ================= VOICE ASSISTANT =================
+elif menu == "🎤 Voice Assistant (Coming Soon)":
+    st.markdown("<div class='bigtitle'>Voice Assistant (Coming Soon)</div>", unsafe_allow_html=True)
+    st.info("Voice Assistant will be added soon!")
 
-    if st.button("Send"):
-        st.write("### 🤖 Nas Galaxy:")
-        res = chat_model(user, max_length=350, temperature=0.7)[0]["generated_text"]
-        st.write(res)
+# ================= SETTINGS =================
+elif menu == "⚙️ Settings":
+    st.markdown("<div class='bigtitle'>Settings</div>", unsafe_allow_html=True)
+    st.button("Toggle Light/Dark Theme", on_click=toggle_theme)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+# ================= OTHER FEATURES =================
+elif menu == "🧩 Other Features (Coming Soon)":
+    st.markdown("<div class='bigtitle'>Other Features (Coming Soon)</div>", unsafe_allow_html=True)
+    st.info("More revolutionary features will be added soon!")
 
-# ---------------------------------------------------------
-# ✨ Emotion Detection
-# ---------------------------------------------------------
-
-elif mode == "Emotion AI":
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.subheader("😊 Emotion AI")
-
-    text = st.text_area("Enter text to analyze")
-
-    if st.button("Analyze"):
-        result = emotion_model(text)[0]
-        st.success(f"Emotion: **{result['label']}** (score: {result['score']:.2f})")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# ✨ Summarizer
-# ---------------------------------------------------------
-
-elif mode == "Summarizer":
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.subheader("📝 AI Summarizer")
-
-    txt = st.text_area("Paste long text here")
-
-    if st.button("Summarize"):
-        sumr = summary_model(txt, max_length=150)[0]["summary_text"]
-        st.success(sumr)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# ✨ PDF Reader
-# ---------------------------------------------------------
-
-elif mode == "PDF Reader":
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.subheader("📄 PDF Text Extractor")
-
-    pdf = st.file_uploader("Upload PDF", type=["pdf"])
-
-    if pdf:
-        reader = PyPDF2.PdfReader(pdf)
-        out = ""
-        for page in reader.pages:
-            out += page.extract_text()
-
-        st.text_area("Extracted Text", out, height=300)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# ✨ Code Assistant (DeepSeek Style)
-# ---------------------------------------------------------
-
-elif mode == "Code Assistant":
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.subheader("💻 DeepSeek Code Assistant")
-
-    prompt = st.text_area("Ask the AI to write or fix code")
-
-    if st.button("Generate Code"):
-        result = code_model(prompt, max_length=300)[0]["generated_text"]
-        st.code(result, language="python")
-
-    st.markdown("</div>", unsafe_allow_html=True)
